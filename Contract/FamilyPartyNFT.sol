@@ -1,4 +1,4 @@
-pragma solidity ^0.8.8;
+pragma solidity 0.8.8;
 pragma experimental ABIEncoderV2;
 
 abstract contract Context {
@@ -915,9 +915,8 @@ library Counters {
 contract OwnableContract {
     address public owner;
     mapping(address => bool) private admin;
-    mapping(address => bool) private partner;
 
-    event NewOwner(address oldOwner, address newOwner);
+    event NewOwner(address indexed oldOwner, address indexed newOwner);
 
     constructor() public {
         owner = msg.sender;
@@ -935,13 +934,15 @@ contract OwnableContract {
     }
 
     function transferOwnership(address _owner) public onlyOwner {
+        address oldOwner = owner;
         owner = _owner;
-        emit NewOwner(owner, _owner);
+        emit NewOwner(oldOwner, _owner);
     }
 
     function renounceOwnership() public virtual onlyOwner {
+        address oldOwner = owner;
         owner = address(0);
-        emit NewOwner(owner, address(0));
+        emit NewOwner(oldOwner, address(0));
     }
 
     function setAdmin(address newAdmin, bool isAdmin) public onlyOwner {
@@ -1027,7 +1028,9 @@ contract FamilyPartyNFT is OwnableContract, ERC721("Infinite Force", "IF") {
         require(cost == upgradeCost, "upgrade cost need");
         require(attributeFirst.level < 13, "max token level");
 
-        IFamily(fpc).fTransferFrom(msg.sender, address(this), cost);
+        bool success = IFamily(fpc).fTransferFrom(msg.sender, address(this), cost);
+
+        require(success,"upgrade failed with transfer error");
 
         _burn(tokenFirst);
         _burn(tokenSecond);
