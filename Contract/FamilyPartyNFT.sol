@@ -221,6 +221,523 @@ library Address {
     }
 }
 
+library EnumerableSet {
+    // To implement this library for multiple types with as little code
+    // repetition as possible, we write it in terms of a generic Set type with
+    // bytes32 values.
+    // The Set implementation uses private functions, and user-facing
+    // implementations (such as AddressSet) are just wrappers around the
+    // underlying Set.
+    // This means that we can only create new EnumerableSets for types that fit
+    // in bytes32.
+
+    struct Set {
+        // Storage of set values
+        bytes32[] _values;
+
+        // Position of the value in the `values` array, plus 1 because index 0
+        // means a value is not in the set.
+        mapping(bytes32 => uint256) _indexes;
+    }
+
+    /**
+     * @dev Add a value to a set. O(1).
+     *
+     * Returns true if the value was added to the set, that is if it was not
+     * already present.
+     */
+    function _add(Set storage set, bytes32 value) private returns (bool) {
+        if (!_contains(set, value)) {
+            set._values.push(value);
+            // The value is stored at length-1, but we add 1 to all indexes
+            // and use 0 as a sentinel value
+            set._indexes[value] = set._values.length;
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * @dev Removes a value from a set. O(1).
+     *
+     * Returns true if the value was removed from the set, that is if it was
+     * present.
+     */
+    function _remove(Set storage set, bytes32 value) private returns (bool) {
+        // We read and store the value's index to prevent multiple reads from the same storage slot
+        uint256 valueIndex = set._indexes[value];
+
+        if (valueIndex != 0) {// Equivalent to contains(set, value)
+            // To delete an element from the _values array in O(1), we swap the element to delete with the last one in
+            // the array, and then remove the last element (sometimes called as 'swap and pop').
+            // This modifies the order of the array, as noted in {at}.
+
+            uint256 toDeleteIndex = valueIndex - 1;
+            uint256 lastIndex = set._values.length - 1;
+
+            // When the value to delete is the last one, the swap operation is unnecessary. However, since this occurs
+            // so rarely, we still do the swap anyway to avoid the gas cost of adding an 'if' statement.
+
+            bytes32 lastvalue = set._values[lastIndex];
+
+            // Move the last value to the index where the value to delete is
+            set._values[toDeleteIndex] = lastvalue;
+            // Update the index for the moved value
+            set._indexes[lastvalue] = toDeleteIndex + 1;
+            // All indexes are 1-based
+
+            // Delete the slot where the moved value was stored
+            set._values.pop();
+
+            // Delete the index for the deleted slot
+            delete set._indexes[value];
+
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * @dev Returns true if the value is in the set. O(1).
+     */
+    function _contains(Set storage set, bytes32 value) private view returns (bool) {
+        return set._indexes[value] != 0;
+    }
+
+    /**
+     * @dev Returns the number of values on the set. O(1).
+     */
+    function _length(Set storage set) private view returns (uint256) {
+        return set._values.length;
+    }
+
+    /**
+     * @dev Returns the value stored at position `index` in the set. O(1).
+     *
+     * Note that there are no guarantees on the ordering of values inside the
+     * array, and it may change when more values are added or removed.
+     *
+     * Requirements:
+     *
+     * - `index` must be strictly less than {length}.
+     */
+    function _at(Set storage set, uint256 index) private view returns (bytes32) {
+        require(set._values.length > index, "EnumerableSet: index out of bounds");
+        return set._values[index];
+    }
+
+    // Bytes32Set
+
+    struct Bytes32Set {
+        Set _inner;
+    }
+
+    /**
+     * @dev Add a value to a set. O(1).
+     *
+     * Returns true if the value was added to the set, that is if it was not
+     * already present.
+     */
+    function add(Bytes32Set storage set, bytes32 value) internal returns (bool) {
+        return _add(set._inner, value);
+    }
+
+    /**
+     * @dev Removes a value from a set. O(1).
+     *
+     * Returns true if the value was removed from the set, that is if it was
+     * present.
+     */
+    function remove(Bytes32Set storage set, bytes32 value) internal returns (bool) {
+        return _remove(set._inner, value);
+    }
+
+    /**
+     * @dev Returns true if the value is in the set. O(1).
+     */
+    function contains(Bytes32Set storage set, bytes32 value) internal view returns (bool) {
+        return _contains(set._inner, value);
+    }
+
+    /**
+     * @dev Returns the number of values in the set. O(1).
+     */
+    function length(Bytes32Set storage set) internal view returns (uint256) {
+        return _length(set._inner);
+    }
+
+    /**
+     * @dev Returns the value stored at position `index` in the set. O(1).
+     *
+     * Note that there are no guarantees on the ordering of values inside the
+     * array, and it may change when more values are added or removed.
+     *
+     * Requirements:
+     *
+     * - `index` must be strictly less than {length}.
+     */
+    function at(Bytes32Set storage set, uint256 index) internal view returns (bytes32) {
+        return _at(set._inner, index);
+    }
+
+    // AddressSet
+
+    struct AddressSet {
+        Set _inner;
+    }
+
+    /**
+     * @dev Add a value to a set. O(1).
+     *
+     * Returns true if the value was added to the set, that is if it was not
+     * already present.
+     */
+    function add(AddressSet storage set, address value) internal returns (bool) {
+        return _add(set._inner, bytes32(uint256(uint160(value))));
+    }
+
+    /**
+     * @dev Removes a value from a set. O(1).
+     *
+     * Returns true if the value was removed from the set, that is if it was
+     * present.
+     */
+    function remove(AddressSet storage set, address value) internal returns (bool) {
+        return _remove(set._inner, bytes32(uint256(uint160(value))));
+    }
+
+    /**
+     * @dev Returns true if the value is in the set. O(1).
+     */
+    function contains(AddressSet storage set, address value) internal view returns (bool) {
+        return _contains(set._inner, bytes32(uint256(uint160(value))));
+    }
+
+    /**
+     * @dev Returns the number of values in the set. O(1).
+     */
+    function length(AddressSet storage set) internal view returns (uint256) {
+        return _length(set._inner);
+    }
+
+    /**
+     * @dev Returns the value stored at position `index` in the set. O(1).
+     *
+     * Note that there are no guarantees on the ordering of values inside the
+     * array, and it may change when more values are added or removed.
+     *
+     * Requirements:
+     *
+     * - `index` must be strictly less than {length}.
+     */
+    function at(AddressSet storage set, uint256 index) internal view returns (address) {
+        return address(uint160(uint256(_at(set._inner, index))));
+    }
+
+
+    // UintSet
+
+    struct UintSet {
+        Set _inner;
+    }
+
+    /**
+     * @dev Add a value to a set. O(1).
+     *
+     * Returns true if the value was added to the set, that is if it was not
+     * already present.
+     */
+    function add(UintSet storage set, uint256 value) internal returns (bool) {
+        return _add(set._inner, bytes32(value));
+    }
+
+    /**
+     * @dev Removes a value from a set. O(1).
+     *
+     * Returns true if the value was removed from the set, that is if it was
+     * present.
+     */
+    function remove(UintSet storage set, uint256 value) internal returns (bool) {
+        return _remove(set._inner, bytes32(value));
+    }
+
+    /**
+     * @dev Returns true if the value is in the set. O(1).
+     */
+    function contains(UintSet storage set, uint256 value) internal view returns (bool) {
+        return _contains(set._inner, bytes32(value));
+    }
+
+    /**
+     * @dev Returns the number of values on the set. O(1).
+     */
+    function length(UintSet storage set) internal view returns (uint256) {
+        return _length(set._inner);
+    }
+
+    /**
+     * @dev Returns the value stored at position `index` in the set. O(1).
+     *
+     * Note that there are no guarantees on the ordering of values inside the
+     * array, and it may change when more values are added or removed.
+     *
+     * Requirements:
+     *
+     * - `index` must be strictly less than {length}.
+     */
+    function at(UintSet storage set, uint256 index) internal view returns (uint256) {
+        return uint256(_at(set._inner, index));
+    }
+}
+
+library EnumerableMap {
+    // To implement this library for multiple types with as little code
+    // repetition as possible, we write it in terms of a generic Map type with
+    // bytes32 keys and values.
+    // The Map implementation uses private functions, and user-facing
+    // implementations (such as Uint256ToAddressMap) are just wrappers around
+    // the underlying Map.
+    // This means that we can only create new EnumerableMaps for types that fit
+    // in bytes32.
+
+    struct MapEntry {
+        bytes32 _key;
+        bytes32 _value;
+    }
+
+    struct Map {
+        // Storage of map keys and values
+        MapEntry[] _entries;
+
+        // Position of the entry defined by a key in the `entries` array, plus 1
+        // because index 0 means a key is not in the map.
+        mapping(bytes32 => uint256) _indexes;
+    }
+
+    /**
+     * @dev Adds a key-value pair to a map, or updates the value for an existing
+     * key. O(1).
+     *
+     * Returns true if the key was added to the map, that is if it was not
+     * already present.
+     */
+    function _set(Map storage map, bytes32 key, bytes32 value) private returns (bool) {
+        // We read and store the key's index to prevent multiple reads from the same storage slot
+        uint256 keyIndex = map._indexes[key];
+
+        if (keyIndex == 0) {// Equivalent to !contains(map, key)
+            map._entries.push(MapEntry({_key : key, _value : value}));
+            // The entry is stored at length-1, but we add 1 to all indexes
+            // and use 0 as a sentinel value
+            map._indexes[key] = map._entries.length;
+            return true;
+        } else {
+            map._entries[keyIndex - 1]._value = value;
+            return false;
+        }
+    }
+
+    /**
+     * @dev Removes a key-value pair from a map. O(1).
+     *
+     * Returns true if the key was removed from the map, that is if it was present.
+     */
+    function _remove(Map storage map, bytes32 key) private returns (bool) {
+        // We read and store the key's index to prevent multiple reads from the same storage slot
+        uint256 keyIndex = map._indexes[key];
+
+        if (keyIndex != 0) {// Equivalent to contains(map, key)
+            // To delete a key-value pair from the _entries array in O(1), we swap the entry to delete with the last one
+            // in the array, and then remove the last entry (sometimes called as 'swap and pop').
+            // This modifies the order of the array, as noted in {at}.
+
+            uint256 toDeleteIndex = keyIndex - 1;
+            uint256 lastIndex = map._entries.length - 1;
+
+            // When the entry to delete is the last one, the swap operation is unnecessary. However, since this occurs
+            // so rarely, we still do the swap anyway to avoid the gas cost of adding an 'if' statement.
+
+            MapEntry storage lastEntry = map._entries[lastIndex];
+
+            // Move the last entry to the index where the entry to delete is
+            map._entries[toDeleteIndex] = lastEntry;
+            // Update the index for the moved entry
+            map._indexes[lastEntry._key] = toDeleteIndex + 1;
+            // All indexes are 1-based
+
+            // Delete the slot where the moved entry was stored
+            map._entries.pop();
+
+            // Delete the index for the deleted slot
+            delete map._indexes[key];
+
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * @dev Returns true if the key is in the map. O(1).
+     */
+    function _contains(Map storage map, bytes32 key) private view returns (bool) {
+        return map._indexes[key] != 0;
+    }
+
+    /**
+     * @dev Returns the number of key-value pairs in the map. O(1).
+     */
+    function _length(Map storage map) private view returns (uint256) {
+        return map._entries.length;
+    }
+
+    /**
+     * @dev Returns the key-value pair stored at position `index` in the map. O(1).
+     *
+     * Note that there are no guarantees on the ordering of entries inside the
+     * array, and it may change when more entries are added or removed.
+     *
+     * Requirements:
+     *
+     * - `index` must be strictly less than {length}.
+     */
+    function _at(Map storage map, uint256 index) private view returns (bytes32, bytes32) {
+        require(map._entries.length > index, "EnumerableMap: index out of bounds");
+
+        MapEntry storage entry = map._entries[index];
+        return (entry._key, entry._value);
+    }
+
+    /**
+     * @dev Tries to returns the value associated with `key`.  O(1).
+     * Does not revert if `key` is not in the map.
+     */
+    function _tryGet(Map storage map, bytes32 key) private view returns (bool, bytes32) {
+        uint256 keyIndex = map._indexes[key];
+        if (keyIndex == 0) return (false, 0);
+        // Equivalent to contains(map, key)
+        return (true, map._entries[keyIndex - 1]._value);
+        // All indexes are 1-based
+    }
+
+    /**
+     * @dev Returns the value associated with `key`.  O(1).
+     *
+     * Requirements:
+     *
+     * - `key` must be in the map.
+     */
+    function _get(Map storage map, bytes32 key) private view returns (bytes32) {
+        uint256 keyIndex = map._indexes[key];
+        require(keyIndex != 0, "EnumerableMap: nonexistent key");
+        // Equivalent to contains(map, key)
+        return map._entries[keyIndex - 1]._value;
+        // All indexes are 1-based
+    }
+
+    /**
+     * @dev Same as {_get}, with a custom error message when `key` is not in the map.
+     *
+     * CAUTION: This function is deprecated because it requires allocating memory for the error
+     * message unnecessarily. For custom revert reasons use {_tryGet}.
+     */
+    function _get(Map storage map, bytes32 key, string memory errorMessage) private view returns (bytes32) {
+        uint256 keyIndex = map._indexes[key];
+        require(keyIndex != 0, errorMessage);
+        // Equivalent to contains(map, key)
+        return map._entries[keyIndex - 1]._value;
+        // All indexes are 1-based
+    }
+
+    // UintToAddressMap
+
+    struct UintToAddressMap {
+        Map _inner;
+    }
+
+    /**
+     * @dev Adds a key-value pair to a map, or updates the value for an existing
+     * key. O(1).
+     *
+     * Returns true if the key was added to the map, that is if it was not
+     * already present.
+     */
+    function set(UintToAddressMap storage map, uint256 key, address value) internal returns (bool) {
+        return _set(map._inner, bytes32(key), bytes32(uint256(uint160(value))));
+    }
+
+    /**
+     * @dev Removes a value from a set. O(1).
+     *
+     * Returns true if the key was removed from the map, that is if it was present.
+     */
+    function remove(UintToAddressMap storage map, uint256 key) internal returns (bool) {
+        return _remove(map._inner, bytes32(key));
+    }
+
+    /**
+     * @dev Returns true if the key is in the map. O(1).
+     */
+    function contains(UintToAddressMap storage map, uint256 key) internal view returns (bool) {
+        return _contains(map._inner, bytes32(key));
+    }
+
+    /**
+     * @dev Returns the number of elements in the map. O(1).
+     */
+    function length(UintToAddressMap storage map) internal view returns (uint256) {
+        return _length(map._inner);
+    }
+
+    /**
+     * @dev Returns the element stored at position `index` in the set. O(1).
+     * Note that there are no guarantees on the ordering of values inside the
+     * array, and it may change when more values are added or removed.
+     *
+     * Requirements:
+     *
+     * - `index` must be strictly less than {length}.
+     */
+    function at(UintToAddressMap storage map, uint256 index) internal view returns (uint256, address) {
+        (bytes32 key, bytes32 value) = _at(map._inner, index);
+        return (uint256(key), address(uint160(uint256(value))));
+    }
+
+    /**
+     * @dev Tries to returns the value associated with `key`.  O(1).
+     * Does not revert if `key` is not in the map.
+     *
+     * _Available since v3.4._
+     */
+    function tryGet(UintToAddressMap storage map, uint256 key) internal view returns (bool, address) {
+        (bool success, bytes32 value) = _tryGet(map._inner, bytes32(key));
+        return (success, address(uint160(uint256(value))));
+    }
+
+    /**
+     * @dev Returns the value associated with `key`.  O(1).
+     *
+     * Requirements:
+     *
+     * - `key` must be in the map.
+     */
+    function get(UintToAddressMap storage map, uint256 key) internal view returns (address) {
+        return address(uint160(uint256(_get(map._inner, bytes32(key)))));
+    }
+
+    /**
+     * @dev Same as {get}, with a custom error message when `key` is not in the map.
+     *
+     * CAUTION: This function is deprecated because it requires allocating memory for the error
+     * message unnecessarily. For custom revert reasons use {tryGet}.
+     */
+    function get(UintToAddressMap storage map, uint256 key, string memory errorMessage) internal view returns (address) {
+        return address(uint160(uint256(_get(map._inner, bytes32(key), errorMessage))));
+    }
+}
+
 interface IERC165 {
     /**
      * @dev Returns true if this contract implements the interface defined by
@@ -376,6 +893,26 @@ interface IERC721 is IERC165 {
     ) external;
 }
 
+interface IERC721Enumerable is IERC721 {
+
+    /**
+     * @dev Returns the total amount of tokens stored by the contract.
+     */
+    function totalSupply() external view returns (uint256);
+
+    /**
+     * @dev Returns a token ID owned by `owner` at a given `index` of its token list.
+     * Use along with {balanceOf} to enumerate all of ``owner``'s tokens.
+     */
+    function tokenOfOwnerByIndex(address owner, uint256 index) external view returns (uint256 tokenId);
+
+    /**
+     * @dev Returns a token ID at a given `index` of all the tokens stored by the contract.
+     * Use along with {totalSupply} to enumerate all tokens.
+     */
+    function tokenByIndex(uint256 index) external view returns (uint256);
+}
+
 interface IERC721Receiver {
     /**
      * @dev Whenever an {IERC721} `tokenId` token is transferred to this contract via {IERC721-safeTransferFrom}
@@ -394,7 +931,7 @@ interface IERC721Receiver {
     ) external returns (bytes4);
 }
 
-interface IERC721Metadata is IERC721 {
+interface IERC721Metadata is IERC721Enumerable {
     /**
      * @dev Returns the token collection name.
      */
@@ -475,6 +1012,14 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata {
     using Address for address;
     using Strings for uint256;
 
+    using EnumerableSet for EnumerableSet.UintSet;
+    using EnumerableMap for EnumerableMap.UintToAddressMap;
+    // Mapping from holder address to their (enumerable) set of owned tokens
+    mapping(address => EnumerableSet.UintSet) private _holderTokens;
+
+    // Enumerable mapping from token ids to their owners
+    EnumerableMap.UintToAddressMap private _tokenOwners;
+
     // Token name
     string private _name;
 
@@ -483,12 +1028,6 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata {
 
     // URL
     string internal baseUrl;
-
-    // Mapping from token ID to owner address
-    mapping(uint256 => address) internal _owners;
-
-    // Mapping owner address to token count
-    mapping(address => uint256) internal _balances;
 
     // Mapping from token ID to approved address
     mapping(uint256 => address) private _tokenApprovals;
@@ -519,16 +1058,37 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata {
      */
     function balanceOf(address owner) public view virtual override returns (uint256) {
         require(owner != address(0), "ERC721: balance query for the zero address");
-        return _balances[owner];
+        return _holderTokens[owner].length();
     }
 
     /**
      * @dev See {IERC721-ownerOf}.
      */
     function ownerOf(uint256 tokenId) public view virtual override returns (address) {
-        address owner = _owners[tokenId];
-        require(owner != address(0), "ERC721: owner query for nonexistent token");
-        return owner;
+        return _tokenOwners.get(tokenId, "ERC721: owner query for nonexistent token");
+    }
+
+    /**
+   * @dev See {IERC721Enumerable-totalSupply}.
+   */
+    function totalSupply() public view virtual override returns (uint256) {
+        // _tokenOwners are indexed by tokenIds, so .length() returns the number of tokenIds
+        return _tokenOwners.length();
+    }
+
+    /**
+     * @dev See {IERC721Enumerable-tokenByIndex}.
+     */
+    function tokenByIndex(uint256 index) public view virtual override returns (uint256) {
+        (uint256 tokenId,) = _tokenOwners.at(index);
+        return tokenId;
+    }
+
+    /**
+     * @dev See {IERC721Enumerable-tokenOfOwnerByIndex}.
+     */
+    function tokenOfOwnerByIndex(address owner, uint256 index) public view virtual override returns (uint256) {
+        return _holderTokens[owner].at(index);
     }
 
     /**
@@ -612,7 +1172,6 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata {
     ) public virtual override {
         //solhint-disable-next-line max-line-length
         require(_isApprovedOrOwner(_msgSender(), tokenId), "ERC721: transfer caller is not owner nor approved");
-
         _transfer(from, to, tokenId);
     }
 
@@ -677,7 +1236,7 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata {
      * and stop existing when they are burned (`_burn`).
      */
     function _exists(uint256 tokenId) internal view virtual returns (bool) {
-        return _owners[tokenId] != address(0);
+        return _tokenOwners.contains(tokenId);
     }
 
     /**
@@ -741,8 +1300,9 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata {
 
         _beforeTokenTransfer(address(0), to, tokenId);
 
-        _balances[to] += 1;
-        _owners[tokenId] = to;
+        _holderTokens[to].add(tokenId);
+
+        _tokenOwners.set(tokenId, to);
 
         emit Transfer(address(0), to, tokenId);
     }
@@ -765,8 +1325,9 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata {
         // Clear approvals
         _approve(address(0), tokenId);
 
-        _balances[owner] -= 1;
-        delete _owners[tokenId];
+        _holderTokens[owner].remove(tokenId);
+
+        _tokenOwners.remove(tokenId);
 
         emit Transfer(owner, address(0), tokenId);
     }
@@ -789,15 +1350,15 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata {
     ) internal virtual {
         require(ERC721.ownerOf(tokenId) == from, "ERC721: transfer of token that is not own");
         require(to != address(0), "ERC721: transfer to the zero address");
-
         _beforeTokenTransfer(from, to, tokenId);
 
         // Clear approvals from the previous owner
         _approve(address(0), tokenId);
 
-        _balances[from] -= 1;
-        _balances[to] += 1;
-        _owners[tokenId] = to;
+        _holderTokens[from].remove(tokenId);
+        _holderTokens[to].add(tokenId);
+
+        _tokenOwners.set(tokenId, to);
 
         emit Transfer(from, to, tokenId);
     }
@@ -918,7 +1479,7 @@ contract OwnableContract {
 
     event NewOwner(address indexed oldOwner, address indexed newOwner);
 
-    constructor() public {
+    constructor() {
         owner = msg.sender;
         admin[msg.sender] = true;
     }
@@ -982,17 +1543,20 @@ interface IFamily {
     ) external returns (bool);
 }
 
-contract FamilyPartyNFT is OwnableContract, ERC721("Infinite Force", "IF") {
+contract FamilyPartyNFT is OwnableContract, ERC721("Infinite Force", "Infinite Force") {
 
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
     address private fpc;
     uint256 upgradeCost;
+    uint256 genesisMaxAmount = 7100;
+    bool upgradeEnable = false;
 
     struct CardAttribute {
-        uint256 rarity;
-        string name;
-        uint256 level;
+        uint8 rarity;
+        uint8 name;
+        uint8 level;
+        bool genesis;
     }
 
     mapping(uint256 => CardAttribute) public tokenIdAttributeMapping;
@@ -1001,36 +1565,78 @@ contract FamilyPartyNFT is OwnableContract, ERC721("Infinite Force", "IF") {
         return tokenIdAttributeMapping[tokenId];
     }
 
-    function createNFT(uint256 rarity, string memory name, uint256 level, address to) public onlyAdmin returns (uint256){
+    function batchCreateNFT(uint8[] memory rarity, uint8[] memory name, uint8[] memory level, address[] memory to) public onlyAdmin {
+        for (uint16 i = 0; i < rarity.length; i++) {
+            createNFT(rarity[i], name[i], level[i], to[i]);
+        }
+    }
+
+    function createNFT(uint8 rarity, uint8 name, uint8 level, address to) public onlyAdmin {
         uint256 tokenId = _mintNFT(to);
         CardAttribute memory cardAttribute;
         cardAttribute.name = name;
         cardAttribute.rarity = rarity;
         cardAttribute.level = level;
+        if (tokenId <= genesisMaxAmount) {
+            cardAttribute.genesis = true;
+        } else {
+            cardAttribute.genesis = false;
+        }
         tokenIdAttributeMapping[tokenId] = cardAttribute;
-        return tokenId;
     }
 
-    function _mintNFT(address owner) private returns (uint256){
+    function _mintNFT(address owner) private onlyAdmin returns (uint256){
         _tokenIds.increment();
 
         uint256 newItemId = _tokenIds.current();
-        _mint(owner, newItemId);
+        _safeMint(owner, newItemId);
         return newItemId;
     }
 
+    function updateUpgradeEnable(bool _upgradeEnable) public onlyOwner {
+        upgradeEnable = _upgradeEnable;
+    }
+
+    function updateTokenAttribute(uint256 tokenId, uint8 rarity, uint8 level, uint8 name, bool genesis) public onlyOwner {
+        CardAttribute memory cardAttribute = tokenIdAttributeMapping[tokenId];
+        cardAttribute.rarity = rarity;
+        cardAttribute.rarity = name;
+        cardAttribute.level = level;
+        cardAttribute.genesis = genesis;
+        tokenIdAttributeMapping[tokenId] = cardAttribute;
+    }
+
+    function burn(uint256 id) public onlyOwner {
+        require(
+            _isApprovedOrOwner(_msgSender(), id),
+            "ERC721: caller is not approved or owner"
+        );
+        _burn(id);
+    }
+
+    function burnBatch(uint256[] calldata ids) public onlyOwner {
+        for (uint256 i = 0; i < ids.length; i++) {
+            require(
+                _isApprovedOrOwner(_msgSender(), ids[i]),
+                "ERC721: caller is not approved or owner"
+            );
+            _burn(ids[i]);
+        }
+    }
+
     function upgradeToken(uint256 tokenFirst, uint256 tokenSecond, uint256 cost) public {
-        require(msg.sender == ownerOf(tokenFirst));
-        require(msg.sender == ownerOf(tokenSecond));
+        require(upgradeEnable, "upgrade is paused");
+        require(msg.sender == ownerOf(tokenFirst), "not token owner");
+        require(msg.sender == ownerOf(tokenSecond), "not token owner");
         CardAttribute memory attributeFirst = tokenIdAttributeMapping[tokenFirst];
         CardAttribute memory attributeSecond = tokenIdAttributeMapping[tokenSecond];
-        require(keccak256(abi.encodePacked(attributeFirst.name)) == keccak256(abi.encodePacked(attributeSecond.name)) && attributeFirst.level == attributeSecond.level, "require token equal");
+        require(attributeFirst.name == attributeSecond.name && attributeFirst.level == attributeSecond.level, "require token equal");
         require(cost == upgradeCost, "upgrade cost need");
         require(attributeFirst.level < 13, "max token level");
 
         bool success = IFamily(fpc).fTransferFrom(msg.sender, address(this), cost);
 
-        require(success,"upgrade failed with transfer error");
+        require(success, "upgrade failed with transfer error");
 
         _burn(tokenFirst);
         _burn(tokenSecond);
@@ -1040,6 +1646,9 @@ contract FamilyPartyNFT is OwnableContract, ERC721("Infinite Force", "IF") {
         cardAttribute.name = attributeFirst.name;
         cardAttribute.rarity = attributeFirst.rarity;
         cardAttribute.level = attributeFirst.level + 1;
+        if (attributeFirst.genesis || attributeSecond.genesis) {
+            cardAttribute.genesis = true;
+        }
         tokenIdAttributeMapping[tokenId] = cardAttribute;
     }
 
@@ -1058,31 +1667,29 @@ contract FamilyPartyNFT is OwnableContract, ERC721("Infinite Force", "IF") {
     function tokenURI(uint256 tokenId) public view virtual override returns (string memory){
         require(tokenId <= _tokenIds.current(), "URI query for nonexistent token");
         CardAttribute memory attribute = tokenIdAttributeMapping[tokenId];
-        return string(bytes.concat(abi.encodePacked(_baseURI(), '/', attribute.name, ".json")));
+        return string(bytes.concat(abi.encodePacked(_baseURI(), '/', uint2str(attribute.name), ".json")));
     }
 
-    function tokensOfOwner(address _owner) public view returns (uint256[] memory ownerTokens) {
-        uint256 tokenCount = balanceOf(_owner);
-
-        if (tokenCount == 0) {
-            // Return an empty array
-            return new uint256[](0);
-        } else {
-            uint256[] memory result = new uint256[](tokenCount);
-            uint256 totalToken = _tokenIds.current();
-            uint256 resultIndex = 0;
-
-            uint256 tokenId;
-
-            for (tokenId = 1; tokenId <= totalToken; tokenId++) {
-                if (_owners[tokenId] == _owner) {
-                    result[resultIndex] = tokenId;
-                    resultIndex++;
-                }
-            }
-
-            return result;
+    function uint2str(uint _i) internal pure returns (string memory _uintAsString) {
+        if (_i == 0) {
+            return "0";
         }
+        uint j = _i;
+        uint len;
+        while (j != 0) {
+            len++;
+            j /= 10;
+        }
+        bytes memory bstr = new bytes(len);
+        uint k = len;
+        while (_i != 0) {
+            k = k-1;
+            uint8 temp = (48 + uint8(_i - _i / 10 * 10));
+            bytes1 b1 = bytes1(temp);
+            bstr[k] = b1;
+            _i /= 10;
+        }
+        return string(bstr);
     }
 
     function withdrawToken() public onlyOwner {
